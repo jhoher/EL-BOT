@@ -108,6 +108,13 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
             GlobalVariableSet("EA_TP2_" + Symbol(), TP2Puntos);
             Print("TP2 actualizado a: ", TP2Puntos);
         }
+        else if(sparam == EA_OBJ_PREFIX + editNumEntradaID) 
+        {
+            string texto = ObjectGetString(0, sparam, OBJPROP_TEXT);
+            NumEntrada = (int)StringToInteger(texto);
+            GlobalVariableSet("EA_NUM_ENTRADA_" + Symbol(), NumEntrada);
+            Print("No. Entrada actualizado a: ", NumEntrada);
+        }
     }
     
     // Si se detecta un cambio de timeframe
@@ -130,6 +137,9 @@ void OnChartEvent(const int id, const long &lparam, const double &dparam, const 
             
         if(ObjectFind(0, EA_OBJ_PREFIX + editTP2ID) >= 0)
             TP2Puntos = (int)StringToInteger(ObjectGetString(0, EA_OBJ_PREFIX + editTP2ID, OBJPROP_TEXT));
+            
+        if(ObjectFind(0, EA_OBJ_PREFIX + editNumEntradaID) >= 0)
+            NumEntrada = (int)StringToInteger(ObjectGetString(0, EA_OBJ_PREFIX + editNumEntradaID, OBJPROP_TEXT));
         
         // Guardar explícitamente estos valores
         GuardarValores();
@@ -597,12 +607,14 @@ string botonVentaID = "BotonVenta";
 string editTP1ID = "EditTP1";
 string editPipsEntrada2ID = "EditPipsEntrada2";
 string editTP2ID = "EditTP2";
+string editNumEntradaID = "EditNumEntrada"; // Nuevo identificador para el campo No. Entrada
 
 // Variables globales
 double LotajeInicial = 0.01;
 int TP1Puntos = 100;
 int PipsEntrada2 = 20;
 int TP2Puntos = 100;
+int NumEntrada = 1; // Nueva variable para almacenar el valor del campo No. Entrada
 bool interfazCreada = false;
 
 // Nueva variable para controlar la verificación de órdenes pendientes
@@ -1096,11 +1108,15 @@ void GuardarValores()
     if(ObjectFind(0, EA_OBJ_PREFIX + editTP2ID) >= 0)
         TP2Puntos = (int)StringToInteger(ObjectGetString(0, EA_OBJ_PREFIX + editTP2ID, OBJPROP_TEXT));
         
+    if(ObjectFind(0, EA_OBJ_PREFIX + editNumEntradaID) >= 0)
+        NumEntrada = (int)StringToInteger(ObjectGetString(0, EA_OBJ_PREFIX + editNumEntradaID, OBJPROP_TEXT));
+        
     // Guardar estos valores en variables globales para persistencia entre timeframes
     GlobalVariableSet("EA_LOTAJE_" + Symbol(), LotajeInicial);
     GlobalVariableSet("EA_TP1_" + Symbol(), TP1Puntos);
     GlobalVariableSet("EA_PIPS_E2_" + Symbol(), PipsEntrada2);
     GlobalVariableSet("EA_TP2_" + Symbol(), TP2Puntos);
+    GlobalVariableSet("EA_NUM_ENTRADA_" + Symbol(), NumEntrada);
 }
 
 //+------------------------------------------------------------------+
@@ -1172,6 +1188,22 @@ void RestaurarValores()
         else
         {
             TP2Puntos = (int)StringToInteger(textoActual);
+        }
+    }
+    
+    if(ObjectFind(0, EA_OBJ_PREFIX + editNumEntradaID) >= 0)
+    {
+        string textoActual = ObjectGetString(0, EA_OBJ_PREFIX + editNumEntradaID, OBJPROP_TEXT);
+        if(textoActual == "" || textoActual == "0")
+        {
+            if(GlobalVariableCheck("EA_NUM_ENTRADA_" + Symbol()))
+                NumEntrada = (int)GlobalVariableGet("EA_NUM_ENTRADA_" + Symbol());
+                
+            ObjectSetString(0, EA_OBJ_PREFIX + editNumEntradaID, OBJPROP_TEXT, IntegerToString(NumEntrada));
+        }
+        else
+        {
+            NumEntrada = (int)StringToInteger(textoActual);
         }
     }
 }
@@ -1248,7 +1280,7 @@ bool RecrearOrdenEntrada2(int indice)
         Print("⚠️ Detectadas órdenes pendientes duplicadas para secuencia #", secuencias[indice].id, " - Limpiando");
         EliminarOrdenesPendientesDuplicadas(indice);
     }
-    
+
     // Verificar si la orden pendiente de Entrada #2 específica existe
     if(VerificarExistenciaOrdenPendiente(secuencias[indice].ticketEntrada2))
     {
@@ -1566,7 +1598,7 @@ void CrearInterfaz()
     int anchoBotones = 120;
     int altoBoton = 30;
     int anchoPanel = anchoBotones * 2 + 20; // Reducido el espaciado
-    int altoPanel = 230; // Altura total del panel (aumentada para más espacio abajo)
+    int altoPanel = 260; // Altura total del panel (aumentada para incluir el nuevo campo)
     int espaciado = 10;
     int margenX = 10; // Reducido el margen
     int margenY = 10;
@@ -1595,6 +1627,10 @@ void CrearInterfaz()
     y += altoBoton + espaciado;
     
     CrearCampoEdicionEstilizado(editTP2ID, "TP entrada #2", x, y, anchoBotones * 2, altoBoton, IntegerToString(TP2Puntos));
+    y += altoBoton + espaciado;
+    
+    // Nuevo campo para No. Entrada
+    CrearCampoEdicionEstilizado(editNumEntradaID, "No. Entrada", x, y, anchoBotones * 2, altoBoton, IntegerToString(NumEntrada));
     
     // Restaurar valores después de crear los objetos
     RestaurarValores();
